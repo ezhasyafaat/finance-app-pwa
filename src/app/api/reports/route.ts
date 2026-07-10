@@ -4,7 +4,7 @@ import { requireUserId } from "@/lib/auth";
 import { ok, handle } from "@/lib/http";
 import { getOrCreatePeriodForDate } from "@/lib/resolve";
 import { todayIso } from "@/lib/utils";
-import { and, eq, sql, desc } from "drizzle-orm";
+import { and, eq, gte, lte, sql, desc } from "drizzle-orm";
 
 interface Slice {
   categoryId: string | null;
@@ -15,7 +15,11 @@ interface Slice {
   pct: number;
 }
 
-async function breakdown(userId: string, periodId: string, type: "expense" | "income") {
+// Filter by the period's DATE WINDOW, not periodId: a transaction's stored
+// periodId can point to an old period after the user creates/activates a new
+// one, but its date still falls inside the active window. Date-range is the
+// source of truth for "which period a transaction belongs to".
+async function breakdown(userId: string, start: string, end: string, type: "expense" | "income") {
   const rows = await db
     .select({
       categoryId: transactions.categoryId,
@@ -29,8 +33,9 @@ async function breakdown(userId: string, periodId: string, type: "expense" | "in
     .where(
       and(
         eq(transactions.userId, userId),
-        eq(transactions.periodId, periodId),
         eq(transactions.type, type),
+        gte(transactions.transactionDate, start),
+        lte(transactions.transactionDate, end),
       ),
     )
     .groupBy(transactions.categoryId, categories.name, categories.color, categories.icon)
@@ -62,8 +67,8 @@ export async function GET(req: Request) {
     }
 
     const [expense, income] = await Promise.all([
-      breakdown(userId, period.id, "expense"),
-      breakdown(userId, period.id, "income"),
+      breakdown(userId, period.startDate, period.endDate, "expense"),
+      breakdown(userId, period.startDate, period.endDate, "income"),
     ]);
 
     return ok({

@@ -12,19 +12,25 @@ const Body = z.object({
   amount: z.number().int().positive().max(1_000_000_000_000_000),
 });
 
-/** Active period id (flagged active, else the one covering today). */
-async function activePeriodId(userId: string): Promise<string> {
+/** Active period date window (flagged active, else the one covering today). */
+async function activePeriodWindow(userId: string): Promise<{ start: string; end: string }> {
   const [active] = await db
-    .select({ id: periods.id })
+    .select({ start: periods.startDate, end: periods.endDate })
     .from(periods)
     .where(and(eq(periods.userId, userId), eq(periods.isActive, true)));
-  return active?.id ?? (await getOrCreatePeriodForDate(userId, todayIso()));
+  if (active) return { start: active.start, end: active.end };
+  const pid = await getOrCreatePeriodForDate(userId, todayIso());
+  const [p] = await db
+    .select({ start: periods.startDate, end: periods.endDate })
+    .from(periods)
+    .where(eq(periods.id, pid));
+  return { start: p.start, end: p.end };
 }
 
 export async function GET() {
   return handle(async () => {
     const userId = await requireUserId();
-    const periodId = await activePeriodId(userId);
+    const { start, end } = await activePeriodWindow(userId);
 
     const rows = await db
       .select({
@@ -34,10 +40,12 @@ export async function GET() {
         categoryName: categories.name,
         categoryColor: categories.color,
         categoryIcon: categories.icon,
+        // Spent within the active period's DATE WINDOW (robust to period switches).
         spent: sql<number>`COALESCE((
           SELECT SUM(${transactions.amount}) FROM ${transactions}
           WHERE ${transactions.categoryId} = ${budgets.categoryId}
-            AND ${transactions.periodId} = ${periodId}
+            AND ${transactions.transactionDate} >= ${start}
+            AND ${transactions.transactionDate} <= ${end}
             AND ${transactions.type} = 'expense'
         ), 0)`,
       })

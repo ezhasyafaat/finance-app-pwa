@@ -5,7 +5,7 @@ import { ok, handle } from "@/lib/http";
 import { totalMoney } from "@/lib/balance";
 import { getOrCreatePeriodForDate } from "@/lib/resolve";
 import { todayIso } from "@/lib/utils";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
 import type { DashboardData } from "@/types";
 
 export async function GET() {
@@ -29,6 +29,8 @@ export async function GET() {
       .orderBy(desc(accounts.isPrimary), desc(accounts.currentBalance));
 
     // Income / expense totals for the active period.
+    // Sum by the active period's DATE WINDOW (not periodId) so transactions
+    // stay counted even after the user switches/creates periods.
     const [sums] = active
       ? await db
           .select({
@@ -36,7 +38,13 @@ export async function GET() {
             income: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
           })
           .from(transactions)
-          .where(and(eq(transactions.userId, userId), eq(transactions.periodId, active.id)))
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              gte(transactions.transactionDate, active.startDate),
+              lte(transactions.transactionDate, active.endDate),
+            ),
+          )
       : [{ expense: 0, income: 0 }];
 
     const recent = await db
