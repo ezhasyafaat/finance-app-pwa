@@ -168,6 +168,8 @@ export const savingsGoals = pgTable(
     targetAmount: bigint("target_amount", { mode: "number" }).notNull(),
     color: varchar("color", { length: 20 }),
     icon: varchar("icon", { length: 40 }),
+    // Free-text savings instrument, e.g. "Emas", "Saham", "Crypto".
+    instrument: varchar("instrument", { length: 40 }),
     targetDate: date("target_date"),
     archived: boolean("archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

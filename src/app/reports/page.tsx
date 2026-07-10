@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/apiClient";
 import { formatMoney } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
-import Donut from "@/components/Donut";
 import Icon from "@/components/Icon";
 
 interface Slice { categoryId: string | null; name: string; color: string | null; icon: string | null; amount: number; pct: number; }
@@ -25,6 +24,9 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Initial tab from ?type= (set when arriving from the dashboard Masuk/Keluar).
+    const t = new URLSearchParams(window.location.search).get("type");
+    if (t === "income" || t === "expense") setTab(t);
     api.get<Report>("/api/reports").then(setData).finally(() => setLoading(false));
   }, []);
 
@@ -59,13 +61,11 @@ export default function ReportsPage() {
 
       {!loading && section && (
         <>
-          <section className="card mb-4 flex flex-col items-center gap-4 p-6">
-            <Donut slices={section.slices}>
-              <div>
-                <p className="text-xs text-muted">Total</p>
-                <p className="text-xl font-extrabold">{formatMoney(section.total)}</p>
-              </div>
-            </Donut>
+          <section className="card mb-4 p-5">
+            <p className="text-xs text-muted">Total {tab === "expense" ? "pengeluaran" : "pemasukan"}</p>
+            <p className={`mt-0.5 text-3xl font-extrabold tracking-tight ${tab === "expense" ? "text-expense" : "text-income"}`}>
+              {formatMoney(section.total)}
+            </p>
           </section>
 
           <div className="card divide-y divide-border">

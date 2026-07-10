@@ -10,6 +10,7 @@ const Body = z.object({
   targetAmount: z.number().int().positive().max(1_000_000_000_000_000),
   color: z.string().max(20).nullable().optional(),
   icon: z.string().max(40).nullable().optional(),
+  instrument: z.string().max(40).nullable().optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
@@ -24,6 +25,7 @@ export async function GET() {
         targetAmount: savingsGoals.targetAmount,
         color: savingsGoals.color,
         icon: savingsGoals.icon,
+        instrument: savingsGoals.instrument,
         targetDate: savingsGoals.targetDate,
         createdAt: savingsGoals.createdAt,
         saved: sql<number>`COALESCE(SUM(${savingsContributions.amount}), 0)`,
@@ -52,6 +54,7 @@ export async function POST(req: Request) {
         targetAmount: d.targetAmount,
         color: d.color,
         icon: d.icon,
+        instrument: d.instrument ?? null,
         targetDate: d.targetDate || null,
       })
       .returning();

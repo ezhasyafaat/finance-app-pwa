@@ -1,0 +1,1 @@
+ALTER TABLE "savings_goals" ADD COLUMN "instrument" varchar(40);

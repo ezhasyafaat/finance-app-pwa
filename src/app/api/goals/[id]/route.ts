@@ -10,6 +10,7 @@ const Patch = z.object({
   targetAmount: z.number().int().positive().max(1_000_000_000_000_000).optional(),
   color: z.string().max(20).nullable().optional(),
   icon: z.string().max(40).nullable().optional(),
+  instrument: z.string().max(40).nullable().optional(),
   targetDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]).nullable().optional(),
   archived: z.boolean().optional(),
 });

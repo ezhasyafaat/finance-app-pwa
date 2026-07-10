@@ -107,20 +107,28 @@ export default function DashboardPage() {
           {money(animatedTotal)}
         </p>
 
-        <Link href="/reports" className="relative mt-5 flex gap-3" aria-label="Lihat laporan">
-          <div className="flex-1 rounded-2xl bg-white/15 px-3.5 py-2.5 backdrop-blur transition active:scale-95">
+        <div className="relative mt-5 flex gap-3">
+          <Link
+            href="/reports?type=income"
+            aria-label="Lihat pemasukan periode"
+            className="flex-1 rounded-2xl bg-white/15 px-3.5 py-2.5 backdrop-blur transition hover:bg-white/25 active:scale-95"
+          >
             <div className="flex items-center gap-1.5 text-xs text-white/80">
               <ArrowDownRight size={13} /> Masuk
             </div>
             <p className="mt-0.5 font-bold">{money(data?.incomeThisPeriod ?? 0)}</p>
-          </div>
-          <div className="flex-1 rounded-2xl bg-white/15 px-3.5 py-2.5 backdrop-blur transition active:scale-95">
+          </Link>
+          <Link
+            href="/reports?type=expense"
+            aria-label="Lihat pengeluaran periode"
+            className="flex-1 rounded-2xl bg-white/15 px-3.5 py-2.5 backdrop-blur transition hover:bg-white/25 active:scale-95"
+          >
             <div className="flex items-center gap-1.5 text-xs text-white/80">
               <ArrowUpRight size={13} /> Keluar
             </div>
             <p className="mt-0.5 font-bold">{money(data?.expenseThisPeriod ?? 0)}</p>
-          </div>
-        </Link>
+          </Link>
+        </div>
       </section>
 
       {/* Quick actions */}

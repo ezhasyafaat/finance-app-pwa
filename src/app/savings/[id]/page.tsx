@@ -5,10 +5,11 @@ import { ArrowLeft, Plus, Minus, Pencil, Trash2, PiggyBank } from "lucide-react"
 import { api } from "@/lib/apiClient";
 import { formatMoney, formatDate } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
-import ProgressRing from "@/components/ProgressRing";
 import Icon, { GOAL_ICONS } from "@/components/Icon";
 import IconPicker from "@/components/IconPicker";
 import { useUI } from "@/components/UIProvider";
+
+const INSTRUMENTS = ["Emas", "Saham", "Crypto", "Reksadana", "Deposito", "Properti", "Dana Darurat"];
 
 interface Contribution { id: string; amount: number; note: string | null; date: string; }
 interface Goal {
@@ -18,6 +19,7 @@ interface Goal {
   saved: number;
   color: string | null;
   icon: string | null;
+  instrument: string | null;
   targetDate: string | null;
   contributions: Contribution[];
 }
@@ -65,21 +67,34 @@ export default function GoalDetailPage() {
       </header>
 
       {/* Progress hero */}
-      <section className="card mb-4 flex flex-col items-center gap-3 p-6">
-        <ProgressRing value={pct} color={color} size={160} stroke={14}>
-          <div className="text-center">
-            <span className="mb-0.5 flex justify-center" style={{ color }}><Icon name={goal?.icon} size={26} /></span>
-            <p className="text-3xl font-extrabold" style={{ color }}>{Math.round(pct * 100)}%</p>
-            <p className="text-xs text-muted">tercapai</p>
+      <section className="card mb-4 p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={{ background: color + "22", color }}>
+            <Icon name={goal?.icon} size={24} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-bold">{goal?.name ?? "…"}</p>
+            {goal?.instrument && (
+              <span className="mt-0.5 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: color + "22", color }}>
+                {goal.instrument}
+              </span>
+            )}
           </div>
-        </ProgressRing>
-        <div className="text-center">
-          <p className="text-2xl font-extrabold">{formatMoney(goal?.saved ?? 0)}</p>
-          <p className="text-sm text-muted">dari {formatMoney(goal?.targetAmount ?? 0)}</p>
-          {remaining > 0 && <p className="mt-1 text-xs text-muted">kurang {formatMoney(remaining)}</p>}
-          {goal?.targetDate && <p className="mt-1 text-xs text-muted">Target: {formatDate(goal.targetDate)}</p>}
+          <span className="text-2xl font-extrabold" style={{ color }}>{Math.round(pct * 100)}%</span>
         </div>
-        <div className="mt-1 grid w-full grid-cols-2 gap-2">
+
+        <p className="text-3xl font-extrabold tracking-tight">{formatMoney(goal?.saved ?? 0)}</p>
+        <p className="text-sm text-muted">dari {formatMoney(goal?.targetAmount ?? 0)}</p>
+
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-surface-2">
+          <div className="h-full rounded-full transition-all" style={{ width: `${pct * 100}%`, background: color }} />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs text-muted">
+          <span>{remaining > 0 ? `kurang ${formatMoney(remaining)}` : "target tercapai"}</span>
+          {goal?.targetDate && <span>Target {formatDate(goal.targetDate)}</span>}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
           <button onClick={() => setMode("deposit")} className="btn-brand"><Plus size={18} /> Setor</button>
           <button onClick={() => setMode("withdraw")} className="btn-ghost"><Minus size={18} /> Tarik</button>
         </div>
@@ -154,6 +169,7 @@ function EditGoalSheet({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
   const [name, setName] = useState(goal.name);
   const [target, setTarget] = useState(goal.targetAmount);
   const [icon, setIcon] = useState(goal.icon ?? GOAL_ICONS[0]);
+  const [instrument, setInstrument] = useState(goal.instrument ?? "");
   const [targetDate, setTargetDate] = useState(goal.targetDate ?? "");
   const [saving, setSaving] = useState(false);
   const color = goal.color ?? "#7ab2e2";
@@ -162,7 +178,13 @@ function EditGoalSheet({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
     if (!name.trim() || target <= 0) return;
     setSaving(true);
     try {
-      await api.patch(`/api/goals/${goal.id}`, { name, targetAmount: target, icon, targetDate: targetDate || null });
+      await api.patch(`/api/goals/${goal.id}`, {
+        name,
+        targetAmount: target,
+        icon,
+        instrument: instrument.trim() || null,
+        targetDate: targetDate || null,
+      });
       onSaved();
     } finally {
       setSaving(false);
@@ -180,6 +202,24 @@ function EditGoalSheet({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
         </div>
         <label className="label">Nama target</label>
         <input className="field mb-3" value={name} onChange={(e) => setName(e.target.value)} />
+
+        <label className="label">Instrumen (opsional)</label>
+        <input className="field mb-2" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {INSTRUMENTS.map((ins) => (
+            <button
+              key={ins}
+              type="button"
+              onClick={() => setInstrument(ins)}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                instrument === ins ? "border-transparent bg-brand text-white" : "border-border text-muted hover:text-text"
+              }`}
+            >
+              {ins}
+            </button>
+          ))}
+        </div>
+
         <label className="label">Target nominal</label>
         <input className="field mb-3" type="number" value={target || ""} onChange={(e) => setTarget(Number(e.target.value))} />
         <label className="label">Target tanggal (opsional)</label>

@@ -6,7 +6,6 @@ import { ArrowLeft, Plus, PiggyBank } from "lucide-react";
 import { api } from "@/lib/apiClient";
 import { formatMoney } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
-import ProgressRing from "@/components/ProgressRing";
 import Icon, { GOAL_ICONS } from "@/components/Icon";
 import IconPicker from "@/components/IconPicker";
 
@@ -17,10 +16,12 @@ interface Goal {
   saved: number;
   color: string | null;
   icon: string | null;
+  instrument: string | null;
   targetDate: string | null;
 }
 
 const PALETTE = ["#7ab2e2", "#7fcfae", "#a99fe0", "#eaa6c4", "#f0b58a", "#6fc7c2"];
+const INSTRUMENTS = ["Emas", "Saham", "Crypto", "Reksadana", "Deposito", "Properti", "Dana Darurat"];
 
 export default function SavingsPage() {
   const router = useRouter();
@@ -70,27 +71,36 @@ export default function SavingsPage() {
 
       <div className="space-y-3">
         {goals.map((g, i) => {
-          const pct = g.targetAmount ? g.saved / g.targetAmount : 0;
-          const color = g.color ?? "rgb(var(--brand))";
+          const pct = g.targetAmount ? Math.min(1, g.saved / g.targetAmount) : 0;
+          const color = g.color ?? "#7ab2e2";
           return (
             <Link
               key={g.id}
               href={`/savings/${g.id}`}
-              className="card animate-fade-up flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
+              className="card animate-fade-up block p-4 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               style={{ animationDelay: `${i * 60}ms` }}
             >
-              <ProgressRing value={pct} color={color} size={64} stroke={7}>
-                <span style={{ color }}><Icon name={g.icon} size={22} /></span>
-              </ProgressRing>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: color + "22", color }}>
+                  <Icon name={g.icon} size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{g.name}</p>
-                  <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ background: color }}>
-                    {Math.round(pct * 100)}%
-                  </span>
+                  {g.instrument && (
+                    <span className="mt-0.5 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: color + "22", color }}>
+                      {g.instrument}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-0.5 text-sm font-bold">{formatMoney(g.saved)}</p>
-                <p className="text-xs text-muted">dari {formatMoney(g.targetAmount)}</p>
+                <span className="text-sm font-extrabold" style={{ color }}>{Math.round(pct * 100)}%</span>
+              </div>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct * 100}%`, background: color }} />
+              </div>
+              <div className="mt-2 flex items-baseline justify-between text-xs">
+                <span className="font-bold">{formatMoney(g.saved)}</span>
+                <span className="text-muted">dari {formatMoney(g.targetAmount)}</span>
               </div>
             </Link>
           );
@@ -109,6 +119,7 @@ function AddGoal({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   const [target, setTarget] = useState(0);
   const [color, setColor] = useState(PALETTE[0]);
   const [icon, setIcon] = useState(GOAL_ICONS[0]);
+  const [instrument, setInstrument] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -116,7 +127,14 @@ function AddGoal({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
     if (!name.trim() || target <= 0) return;
     setSaving(true);
     try {
-      await api.post("/api/goals", { name, targetAmount: target, color, icon, targetDate: targetDate || null });
+      await api.post("/api/goals", {
+        name,
+        targetAmount: target,
+        color,
+        icon,
+        instrument: instrument.trim() || null,
+        targetDate: targetDate || null,
+      });
       onSaved();
     } finally {
       setSaving(false);
@@ -138,6 +156,24 @@ function AddGoal({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
 
         <label className="label">Nama target</label>
         <input className="field mb-3" value={name} onChange={(e) => setName(e.target.value)} placeholder="Beli motor, dana darurat…" />
+
+        <label className="label">Instrumen (opsional)</label>
+        <input className="field mb-2" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {INSTRUMENTS.map((ins) => (
+            <button
+              key={ins}
+              type="button"
+              onClick={() => setInstrument(ins)}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                instrument === ins ? "border-transparent bg-brand text-white" : "border-border text-muted hover:text-text"
+              }`}
+            >
+              {ins}
+            </button>
+          ))}
+        </div>
+
         <label className="label">Target nominal</label>
         <input className="field mb-3" type="number" value={target || ""} onChange={(e) => setTarget(Number(e.target.value))} placeholder="0" />
         <label className="label">Target tanggal (opsional)</label>
