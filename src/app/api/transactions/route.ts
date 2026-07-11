@@ -18,6 +18,8 @@ const Body = z.object({
   accountId: z.string().uuid(),
   // Destination account, required when type === "transfer".
   toAccountId: z.string().uuid().nullable().optional(),
+  // Admin fee for transfers (charged to source). Defaults to 2500 if omitted.
+  adminFee: z.number().int().min(0).max(AMOUNT_MAX).optional(),
   amount: z.number().int().min(-AMOUNT_MAX).max(AMOUNT_MAX),
   categoryId: z.string().uuid().nullable().optional(),
   merchant: z.string().max(160).nullable().optional(),
@@ -65,6 +67,7 @@ export async function GET(req: Request) {
         merchant: transactions.merchant,
         description: transactions.description,
         transactionDate: transactions.transactionDate,
+        adminFee: transactions.adminFee,
         accountId: transactions.accountId,
         accountName: accounts.name,
         transferAccountId: transactions.transferAccountId,
@@ -136,6 +139,7 @@ export async function POST(req: Request) {
         accountId: d.accountId,
         transferAccountId,
         amount,
+        adminFee: d.type === "transfer" ? Math.max(0, d.adminFee ?? 2500) : 0,
         categoryId: d.type === "transfer" ? null : d.categoryId ?? null,
         merchant: d.merchant ?? null,
         description: d.description ?? null,

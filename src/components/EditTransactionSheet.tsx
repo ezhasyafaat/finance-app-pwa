@@ -138,10 +138,17 @@ export default function EditTransactionSheet({
         )}
 
         {isTransfer ? (
-          <div className="mb-4 mt-3 flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-sm font-medium">
-            <span>{tx.accountName ?? "?"}</span>
-            <span className="text-brand">→</span>
-            <span>{tx.transferAccountName ?? "?"}</span>
+          <div className="mb-4 mt-3 space-y-2">
+            <div className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-sm font-medium">
+              <span>{tx.accountName ?? "?"}</span>
+              <span className="text-brand">→</span>
+              <span>{tx.transferAccountName ?? "?"}</span>
+            </div>
+            {tx.adminFee > 0 && (
+              <p className="text-center text-xs text-muted">
+                Biaya admin: <b>{formatMoney(tx.adminFee)}</b> · total keluar {formatMoney(tx.amount + tx.adminFee)}
+              </p>
+            )}
           </div>
         ) : (
           <>

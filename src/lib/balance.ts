@@ -41,13 +41,13 @@ export async function recalcAccountBalance(accountId: string): Promise<number> {
     .select({
       delta: sql<number>`
         COALESCE(SUM(
-          CASE ${transactions.type}
+          (CASE ${transactions.type}
             WHEN 'income' THEN ${transactions.amount}
             WHEN 'expense' THEN -${transactions.amount}
             WHEN 'adjustment' THEN ${transactions.amount}
             WHEN 'transfer' THEN -${transactions.amount}
             ELSE 0
-          END
+          END) - COALESCE(${transactions.adminFee}, 0)
         ), 0)`.as("delta"),
     })
     .from(transactions)

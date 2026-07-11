@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" ADD COLUMN "admin_fee" bigint DEFAULT 0 NOT NULL;

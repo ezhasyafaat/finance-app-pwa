@@ -112,6 +112,8 @@ export const transactions = pgTable(
     }),
     // Always stored positive. The `type` determines the sign in balance math.
     amount: bigint("amount", { mode: "number" }).notNull(),
+    // Admin/transfer fee charged to the SOURCE account on a transfer (0 otherwise).
+    adminFee: bigint("admin_fee", { mode: "number" }).notNull().default(0),
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "set null",
     }),

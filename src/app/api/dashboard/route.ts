@@ -59,6 +59,7 @@ export async function GET() {
         description: transactions.description,
         transactionDate: transactions.transactionDate,
         accountName: accounts.name,
+        adminFee: transactions.adminFee,
         transferAccountId: transactions.transferAccountId,
         transferAccountName: destAccounts.name,
         categoryName: categories.name,

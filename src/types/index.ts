@@ -47,6 +47,7 @@ export interface RecentTransaction {
   description: string | null;
   transactionDate: string;
   accountName: string | null;
+  adminFee: number;
   transferAccountId: string | null;
   transferAccountName: string | null;
   categoryName: string | null;

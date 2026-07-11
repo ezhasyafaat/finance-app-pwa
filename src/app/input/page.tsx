@@ -20,6 +20,7 @@ export default function InputPage() {
   const [amount, setAmount] = useState(0);
   const [accountId, setAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
+  const [adminFee, setAdminFee] = useState(2500);
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(todayIso());
@@ -52,7 +53,7 @@ export default function InputPage() {
       await api.post("/api/transactions", {
         type,
         accountId,
-        ...(type === "transfer" ? { toAccountId } : { categoryId: categoryId || null }),
+        ...(type === "transfer" ? { toAccountId, adminFee: Math.max(0, adminFee) } : { categoryId: categoryId || null }),
         amount,
         description,
         transactionDate: date,
@@ -130,6 +131,18 @@ export default function InputPage() {
             <option value="">Pilih akun tujuan…</option>
             {accounts.filter((a) => a.id !== accountId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
+
+          <label className="label">Biaya admin</label>
+          <input
+            type="number"
+            value={adminFee === 0 ? 0 : adminFee || ""}
+            onChange={(e) => setAdminFee(Number(e.target.value))}
+            className="field mb-1"
+            placeholder="0"
+          />
+          <p className="mb-3 text-xs text-muted">
+            Total keluar dari akun asal: <b>{formatMoney((amount || 0) + Math.max(0, adminFee))}</b>
+          </p>
         </>
       ) : (
         <>
