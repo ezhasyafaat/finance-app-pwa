@@ -15,7 +15,7 @@ import { accounts, transactions } from "@/db/schema";
  * the app balance is reconciled against the real account balance.
  */
 
-/** Net signed effect of a single transaction on its account balance. */
+/** Net signed effect of a single transaction on its (source) account balance. */
 export function signedEffect(type: string, amount: number): number {
   switch (type) {
     case "income":
@@ -24,8 +24,10 @@ export function signedEffect(type: string, amount: number): number {
       return -amount;
     case "adjustment":
       return amount; // already signed
+    case "transfer":
+      return -amount; // leaves the source account (destination handled separately)
     default:
-      return 0; // transfer handled separately (future)
+      return 0;
   }
 }
 
@@ -34,6 +36,7 @@ export async function recalcAccountBalance(accountId: string): Promise<number> {
   const [acc] = await db.select().from(accounts).where(eq(accounts.id, accountId));
   if (!acc) return 0;
 
+  // Effect of transactions whose SOURCE account is this one (transfer = outgoing).
   const [row] = await db
     .select({
       delta: sql<number>`
@@ -42,6 +45,7 @@ export async function recalcAccountBalance(accountId: string): Promise<number> {
             WHEN 'income' THEN ${transactions.amount}
             WHEN 'expense' THEN -${transactions.amount}
             WHEN 'adjustment' THEN ${transactions.amount}
+            WHEN 'transfer' THEN -${transactions.amount}
             ELSE 0
           END
         ), 0)`.as("delta"),
@@ -49,7 +53,15 @@ export async function recalcAccountBalance(accountId: string): Promise<number> {
     .from(transactions)
     .where(eq(transactions.accountId, accountId));
 
-  const current = acc.initialBalance + Number(row?.delta ?? 0);
+  // Incoming transfers: rows where this account is the destination.
+  const [inc] = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`.as("total"),
+    })
+    .from(transactions)
+    .where(and(eq(transactions.transferAccountId, accountId), eq(transactions.type, "transfer")));
+
+  const current = acc.initialBalance + Number(row?.delta ?? 0) + Number(inc?.total ?? 0);
   await db.update(accounts).set({ currentBalance: current }).where(eq(accounts.id, accountId));
   return current;
 }

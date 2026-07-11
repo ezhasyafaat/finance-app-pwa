@@ -67,6 +67,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     await recalcAccountBalance(tx.accountId);
     if (d.accountId && d.accountId !== tx.accountId) await recalcAccountBalance(d.accountId);
+    // A transfer also affects its destination (e.g. amount edited).
+    if (tx.transferAccountId) await recalcAccountBalance(tx.transferAccountId);
     return ok({ id });
   });
 }
@@ -79,6 +81,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!tx) return bad("Transaction not found.", 404);
     await db.delete(transactions).where(eq(transactions.id, id));
     await recalcAccountBalance(tx.accountId);
+    if (tx.transferAccountId) await recalcAccountBalance(tx.transferAccountId);
     return ok({ ok: true });
   });
 }

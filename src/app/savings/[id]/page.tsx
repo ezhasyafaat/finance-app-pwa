@@ -9,8 +9,6 @@ import Icon, { GOAL_ICONS } from "@/components/Icon";
 import IconPicker from "@/components/IconPicker";
 import { useUI } from "@/components/UIProvider";
 
-const INSTRUMENTS = ["Emas", "Saham", "Crypto", "Reksadana", "Deposito", "Properti", "Dana Darurat"];
-
 interface Contribution { id: string; amount: number; note: string | null; date: string; }
 interface Goal {
   id: string;
@@ -204,21 +202,7 @@ function EditGoalSheet({ goal, onClose, onSaved }: { goal: Goal; onClose: () => 
         <input className="field mb-3" value={name} onChange={(e) => setName(e.target.value)} />
 
         <label className="label">Instrumen (opsional)</label>
-        <input className="field mb-2" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {INSTRUMENTS.map((ins) => (
-            <button
-              key={ins}
-              type="button"
-              onClick={() => setInstrument(ins)}
-              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                instrument === ins ? "border-transparent bg-brand text-white" : "border-border text-muted hover:text-text"
-              }`}
-            >
-              {ins}
-            </button>
-          ))}
-        </div>
+        <input className="field mb-3" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
 
         <label className="label">Target nominal</label>
         <input className="field mb-3" type="number" value={target || ""} onChange={(e) => setTarget(Number(e.target.value))} />

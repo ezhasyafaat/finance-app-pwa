@@ -47,6 +47,8 @@ export interface RecentTransaction {
   description: string | null;
   transactionDate: string;
   accountName: string | null;
+  transferAccountId: string | null;
+  transferAccountName: string | null;
   categoryName: string | null;
   categoryColor: string | null;
   categoryIcon: string | null;

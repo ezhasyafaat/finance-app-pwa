@@ -162,6 +162,8 @@ export default function AccountDetailPage() {
           items.map((t) => {
             const income = t.type === "income";
             const adj = t.type === "adjustment";
+            const transfer = t.type === "transfer";
+            const outgoing = transfer && t.accountId === id; // this account is the source
             return (
               <button
                 key={t.id}
@@ -170,13 +172,23 @@ export default function AccountDetailPage() {
               >
                 <TxIcon type={t.type} categoryIcon={t.categoryIcon} categoryColor={t.categoryColor} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{t.merchant || t.description || t.categoryName || t.type}</p>
+                  <p className="truncate font-medium">
+                    {transfer ? (t.description || "Transfer") : t.merchant || t.description || t.categoryName || t.type}
+                  </p>
                   <p className="truncate text-xs text-muted">
-                    {t.categoryName ?? t.type} · {formatDate(t.transactionDate)}
+                    {transfer
+                      ? outgoing
+                        ? `ke ${t.transferAccountName ?? "?"} · ${formatDate(t.transactionDate)}`
+                        : `dari ${t.accountName ?? "?"} · ${formatDate(t.transactionDate)}`
+                      : `${t.categoryName ?? t.type} · ${formatDate(t.transactionDate)}`}
                   </p>
                 </div>
-                <span className={`shrink-0 font-bold ${income ? "text-income" : adj ? "text-muted" : "text-expense"}`}>
-                  {money(formatMoney(t.amount, { sign: adj }))}
+                <span
+                  className={`shrink-0 font-bold ${
+                    transfer ? (outgoing ? "text-expense" : "text-income") : income ? "text-income" : adj ? "text-muted" : "text-expense"
+                  }`}
+                >
+                  {transfer ? money(`${outgoing ? "−" : "+"}${formatMoney(t.amount)}`) : money(formatMoney(t.amount, { sign: adj }))}
                 </span>
               </button>
             );

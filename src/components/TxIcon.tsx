@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, Scale } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Scale, ArrowLeftRight } from "lucide-react";
 import Icon from "./Icon";
 
 const BASE = "grid h-10 w-10 shrink-0 place-items-center rounded-full";
@@ -20,6 +20,13 @@ export default function TxIcon({
     return (
       <span className={`${BASE} bg-muted/15 text-muted`}>
         <Scale size={16} />
+      </span>
+    );
+  }
+  if (type === "transfer") {
+    return (
+      <span className={`${BASE} bg-brand/12 text-brand`}>
+        <ArrowLeftRight size={17} />
       </span>
     );
   }

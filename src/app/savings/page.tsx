@@ -21,7 +21,6 @@ interface Goal {
 }
 
 const PALETTE = ["#7ab2e2", "#7fcfae", "#a99fe0", "#eaa6c4", "#f0b58a", "#6fc7c2"];
-const INSTRUMENTS = ["Emas", "Saham", "Crypto", "Reksadana", "Deposito", "Properti", "Dana Darurat"];
 
 export default function SavingsPage() {
   const router = useRouter();
@@ -158,21 +157,7 @@ function AddGoal({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         <input className="field mb-3" value={name} onChange={(e) => setName(e.target.value)} placeholder="Beli motor, dana darurat…" />
 
         <label className="label">Instrumen (opsional)</label>
-        <input className="field mb-2" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {INSTRUMENTS.map((ins) => (
-            <button
-              key={ins}
-              type="button"
-              onClick={() => setInstrument(ins)}
-              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                instrument === ins ? "border-transparent bg-brand text-white" : "border-border text-muted hover:text-text"
-              }`}
-            >
-              {ins}
-            </button>
-          ))}
-        </div>
+        <input className="field mb-3" value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Emas, saham, crypto…" maxLength={40} />
 
         <label className="label">Target nominal</label>
         <input className="field mb-3" type="number" value={target || ""} onChange={(e) => setTarget(Number(e.target.value))} placeholder="0" />

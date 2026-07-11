@@ -6,7 +6,10 @@ import { totalMoney } from "@/lib/balance";
 import { getOrCreatePeriodForDate } from "@/lib/resolve";
 import { todayIso } from "@/lib/utils";
 import { and, eq, gte, lte, desc, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { DashboardData } from "@/types";
+
+const destAccounts = alias(accounts, "dest_accounts");
 
 export async function GET() {
   return handle(async () => {
@@ -56,12 +59,15 @@ export async function GET() {
         description: transactions.description,
         transactionDate: transactions.transactionDate,
         accountName: accounts.name,
+        transferAccountId: transactions.transferAccountId,
+        transferAccountName: destAccounts.name,
         categoryName: categories.name,
         categoryColor: categories.color,
         categoryIcon: categories.icon,
       })
       .from(transactions)
       .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+      .leftJoin(destAccounts, eq(transactions.transferAccountId, destAccounts.id))
       .leftJoin(categories, eq(transactions.categoryId, categories.id))
       .where(eq(transactions.userId, userId))
       .orderBy(desc(transactions.transactionDate), desc(transactions.createdAt))

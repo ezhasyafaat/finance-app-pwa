@@ -122,6 +122,7 @@ export default function TransactionsPage() {
           items.map((t) => {
             const income = t.type === "income";
             const adj = t.type === "adjustment";
+            const transfer = t.type === "transfer";
             return (
               <button
                 key={t.id}
@@ -130,12 +131,16 @@ export default function TransactionsPage() {
               >
                 <TxIcon type={t.type} categoryIcon={t.categoryIcon} categoryColor={t.categoryColor} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{t.merchant || t.description || t.categoryName || t.type}</p>
+                  <p className="truncate font-medium">
+                    {transfer ? (t.description || "Transfer") : t.merchant || t.description || t.categoryName || t.type}
+                  </p>
                   <p className="truncate text-xs text-muted">
-                    {t.categoryName ?? t.type} · {t.accountName} · {formatDate(t.transactionDate)}
+                    {transfer
+                      ? `${t.accountName ?? "?"} → ${t.transferAccountName ?? "?"} · ${formatDate(t.transactionDate)}`
+                      : `${t.categoryName ?? t.type} · ${t.accountName} · ${formatDate(t.transactionDate)}`}
                   </p>
                 </div>
-                <span className={`shrink-0 font-bold ${income ? "text-income" : adj ? "text-muted" : "text-expense"}`}>
+                <span className={`shrink-0 font-bold ${transfer ? "text-muted" : income ? "text-income" : adj ? "text-muted" : "text-expense"}`}>
                   {formatMoney(t.amount, { sign: adj })}
                 </span>
               </button>

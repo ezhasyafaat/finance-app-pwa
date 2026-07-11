@@ -6,12 +6,18 @@ import { recalcAccountBalance } from "@/lib/balance";
 import { getOrCreatePeriodForDate } from "@/lib/resolve";
 import { todayIso } from "@/lib/utils";
 import { and, or, eq, desc, ilike } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
+
+// Second join onto accounts for a transfer's destination account.
+const destAccounts = alias(accounts, "dest_accounts");
 
 const AMOUNT_MAX = 1_000_000_000_000_000; // 1e15
 const Body = z.object({
-  type: z.enum(["income", "expense", "adjustment"]),
+  type: z.enum(["income", "expense", "adjustment", "transfer"]),
   accountId: z.string().uuid(),
+  // Destination account, required when type === "transfer".
+  toAccountId: z.string().uuid().nullable().optional(),
   amount: z.number().int().min(-AMOUNT_MAX).max(AMOUNT_MAX),
   categoryId: z.string().uuid().nullable().optional(),
   merchant: z.string().max(160).nullable().optional(),
@@ -32,8 +38,13 @@ export async function GET(req: Request) {
 
     const filters = [eq(transactions.userId, userId)];
     if (periodId) filters.push(eq(transactions.periodId, periodId));
-    if (accountId) filters.push(eq(transactions.accountId, accountId));
-    if (type === "income" || type === "expense" || type === "adjustment") {
+    // Account filter includes transfers where this account is the destination.
+    if (accountId) {
+      filters.push(
+        or(eq(transactions.accountId, accountId), eq(transactions.transferAccountId, accountId))!,
+      );
+    }
+    if (type === "income" || type === "expense" || type === "adjustment" || type === "transfer") {
       filters.push(eq(transactions.type, type));
     }
 
@@ -56,6 +67,8 @@ export async function GET(req: Request) {
         transactionDate: transactions.transactionDate,
         accountId: transactions.accountId,
         accountName: accounts.name,
+        transferAccountId: transactions.transferAccountId,
+        transferAccountName: destAccounts.name,
         categoryId: transactions.categoryId,
         categoryName: categories.name,
         categoryColor: categories.color,
@@ -63,6 +76,7 @@ export async function GET(req: Request) {
       })
       .from(transactions)
       .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+      .leftJoin(destAccounts, eq(transactions.transferAccountId, destAccounts.id))
       .leftJoin(categories, eq(transactions.categoryId, categories.id))
       .where(and(...filters))
       .orderBy(desc(transactions.transactionDate), desc(transactions.createdAt))
@@ -87,8 +101,20 @@ export async function POST(req: Request) {
       .where(and(eq(accounts.id, d.accountId), eq(accounts.userId, userId)));
     if (!acc) return bad("Account not found.", 404);
 
-    // Verify category ownership if one was supplied.
-    if (d.categoryId) {
+    // Transfer: verify a distinct, owned destination account.
+    let transferAccountId: string | null = null;
+    if (d.type === "transfer") {
+      if (!d.toAccountId || d.toAccountId === d.accountId) {
+        return bad("Pilih akun tujuan yang berbeda.");
+      }
+      const [to] = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.id, d.toAccountId), eq(accounts.userId, userId)));
+      if (!to) return bad("Akun tujuan tidak ditemukan.", 404);
+      transferAccountId = d.toAccountId;
+    } else if (d.categoryId) {
+      // Verify category ownership for non-transfer transactions.
       const [cat] = await db
         .select({ id: categories.id })
         .from(categories)
@@ -99,7 +125,7 @@ export async function POST(req: Request) {
     const date = d.transactionDate || todayIso();
     const periodId = await getOrCreatePeriodForDate(userId, date);
 
-    // income/expense stored positive; adjustment keeps its sign.
+    // income/expense/transfer stored positive; adjustment keeps its sign.
     const amount = d.type === "adjustment" ? d.amount : Math.abs(d.amount);
 
     const [row] = await db
@@ -108,8 +134,9 @@ export async function POST(req: Request) {
         userId,
         type: d.type,
         accountId: d.accountId,
+        transferAccountId,
         amount,
-        categoryId: d.categoryId ?? null,
+        categoryId: d.type === "transfer" ? null : d.categoryId ?? null,
         merchant: d.merchant ?? null,
         description: d.description ?? null,
         transactionDate: date,
@@ -118,6 +145,8 @@ export async function POST(req: Request) {
       .returning();
 
     const currentBalance = await recalcAccountBalance(d.accountId);
+    // Transfer moves money into the destination too — recompute it.
+    if (transferAccountId) await recalcAccountBalance(transferAccountId);
     return ok({ transaction: row, accountBalance: currentBalance }, 201);
   });
 }

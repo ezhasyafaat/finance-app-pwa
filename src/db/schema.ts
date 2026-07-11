@@ -106,6 +106,10 @@ export const transactions = pgTable(
     accountId: uuid("account_id")
       .notNull()
       .references(() => accounts.id, { onDelete: "cascade" }),
+    // For type='transfer': the destination account. Source is `accountId`.
+    transferAccountId: uuid("transfer_account_id").references(() => accounts.id, {
+      onDelete: "set null",
+    }),
     // Always stored positive. The `type` determines the sign in balance math.
     amount: bigint("amount", { mode: "number" }).notNull(),
     categoryId: uuid("category_id").references(() => categories.id, {

@@ -35,6 +35,7 @@ export default function EditTransactionSheet({
   const { confirm, toast } = useUI();
 
   const isAdjustment = tx?.type === "adjustment";
+  const isTransfer = tx?.type === "transfer";
 
   useEffect(() => {
     if (!tx) return;
@@ -55,18 +56,16 @@ export default function EditTransactionSheet({
   const cats = categories.filter((c) => c.type === type);
 
   async function save() {
-    if (!accountId) return setError("Pilih akun dulu.");
-    if (amount <= 0) return setError("Jumlah harus lebih dari 0.");
+    if (!isTransfer && !accountId) return setError("Pilih akun dulu.");
+    if (!isTransfer && amount <= 0) return setError("Jumlah harus lebih dari 0.");
     setSaving(true);
     setError(null);
     try {
-      await api.patch(`/api/transactions/${tx!.id}`, {
-        amount: isAdjustment ? tx!.amount : amount,
-        accountId,
-        categoryId: categoryId || null,
-        description,
-        transactionDate: date,
-      });
+      // Transfers keep their accounts/amount; only the note & date are editable here.
+      const payload = isTransfer
+        ? { description, transactionDate: date }
+        : { amount: isAdjustment ? tx!.amount : amount, accountId, categoryId: categoryId || null, description, transactionDate: date };
+      await api.patch(`/api/transactions/${tx!.id}`, payload);
       toast("Perubahan disimpan");
       onSaved();
     } catch (e) {
@@ -101,13 +100,13 @@ export default function EditTransactionSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Edit transaksi</h2>
+          <h2 className="text-lg font-semibold">{isTransfer ? "Detail transfer" : "Edit transaksi"}</h2>
           <button onClick={onClose} className="rounded-full p-1.5 text-muted hover:bg-surface-2">
             <X size={20} />
           </button>
         </div>
 
-        {!isAdjustment && (
+        {!isAdjustment && !isTransfer && (
           <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-border p-1">
             {(["expense", "income"] as const).map((t) => (
               <button
@@ -128,7 +127,7 @@ export default function EditTransactionSheet({
         <div className="mb-1 text-center text-3xl font-extrabold tracking-tight">
           {formatMoney(isAdjustment ? tx.amount : amount, { sign: isAdjustment })}
         </div>
-        {!isAdjustment && (
+        {!isAdjustment && !isTransfer && (
           <input
             type="number"
             value={amount || ""}
@@ -138,13 +137,23 @@ export default function EditTransactionSheet({
           />
         )}
 
-        <label className="label">Akun</label>
-        <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="field mb-3">
-          <option value="">Pilih akun…</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        {isTransfer ? (
+          <div className="mb-4 mt-3 flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-sm font-medium">
+            <span>{tx.accountName ?? "?"}</span>
+            <span className="text-brand">→</span>
+            <span>{tx.transferAccountName ?? "?"}</span>
+          </div>
+        ) : (
+          <>
+            <label className="label">Akun</label>
+            <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="field mb-3">
+              <option value="">Pilih akun…</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </>
+        )}
 
-        {!isAdjustment && (
+        {!isAdjustment && !isTransfer && (
           <>
             <label className="label">Kategori</label>
             <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="field mb-3">

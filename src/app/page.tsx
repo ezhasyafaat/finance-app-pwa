@@ -206,18 +206,21 @@ export default function DashboardPage() {
         <div className="card divide-y divide-border">
           {(data?.recent ?? []).map((t, i) => {
             const income = t.type === "income";
+            const transfer = t.type === "transfer";
             return (
               <div key={t.id} className="animate-fade-up flex items-center gap-3 p-3.5" style={{ animationDelay: `${280 + i * 45}ms` }}>
                 <TxIcon type={t.type} categoryIcon={t.categoryIcon} categoryColor={t.categoryColor} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
-                    {t.merchant || t.description || t.categoryName || "Transaksi"}
+                    {transfer ? (t.description || "Transfer") : t.merchant || t.description || t.categoryName || "Transaksi"}
                   </p>
                   <p className="truncate text-xs text-muted">
-                    {t.categoryName ?? t.type} · {t.accountName} · {formatDate(t.transactionDate)}
+                    {transfer
+                      ? `${t.accountName ?? "?"} → ${t.transferAccountName ?? "?"} · ${formatDate(t.transactionDate)}`
+                      : `${t.categoryName ?? t.type} · ${t.accountName} · ${formatDate(t.transactionDate)}`}
                   </p>
                 </div>
-                <span className={`shrink-0 font-bold ${income ? "text-income" : "text-expense"}`}>
+                <span className={`shrink-0 font-bold ${transfer ? "text-muted" : income ? "text-income" : "text-expense"}`}>
                   {money(t.amount)}
                 </span>
               </div>
